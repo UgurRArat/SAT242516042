@@ -1,0 +1,123 @@
+﻿@page "/rezervasyonlar"
+@using KutuphaneOtomasyonu_242516042.Models
+@using KutuphaneOtomasyonu_242516042.Data
+@inject KutuphaneServisi KutuphaneServisi
+@inject IJSRuntime JSRuntime
+<PageTitle>Rezervasyon Yönetimi</PageTitle>
+
+<h3>Rezervasyon Yönetimi</h3>
+<div class="alert alert-info"><strong>Bilgi:</strong> Sadece 'Ödünç Verildi' durumundaki kitaplara rezervasyon yapılabilir.</div>
+
+<EditForm Model="_yeniRezervasyonModeli" OnValidSubmit="HandleRezervasyonYap">
+    <DataAnnotationsValidator />
+    <div class="card shadow mb-4">
+        <div class="card-header">Yeni Rezervasyon Yap</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <label>Üye Seçin:</label>
+                    <InputSelect class="form-select" @bind-Value="_yeniRezervasyonModeli.UyeId">
+                        <option value="0">-- Üye Seçin --</option>
+                        @if (_uyeListesi != null)
+                        {
+                            @foreach(var uye in _uyeListesi) {
+                                <option value="@uye.Id">@uye.TamAd</option>
+                            }
+ }
+                    </InputSelect>
+                </div>
+                <div class="col-md-6">
+                    <label>Kitap Seçin (Sadece ödünçtekiler rezerve edilebilir):</label>
+                    <InputSelect class="form-select" @bind-Value="_yeniRezervasyonModeli.KitapId">
+                        <option value="0">-- Kitap Seçin --</option>
+                        @if (_tumKitapListesi != null)
+                        {
+                            @foreach (var kitap in _tumKitapListesi)
+                            {
+                                <option value="@kitap.Id" disabled="@(kitap.Durum != "Ödünç Verildi")">@kitap.Ad (Durum: @kitap.Durum)</option>
+                            }
+                        }
+                    </InputSelect>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">Rezervasyon Yap</button></div>
+    </div>
+</EditForm>
+<hr />
+<h5>Aktif Rezervasyonlar (Beklemede / Alınmaya Hazır)</h5>
+@if (_aktifRezervasyonListesi == null)
+{
+    <p><em>Yükleniyor...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark"><tr><th>Üye</th><th>Kitap</th><th>Rezervasyon Tarihi</th><th>Durum</th><th>İşlem</th></tr></thead>
+        <tbody>
+            @foreach (var rez in _aktifRezervasyonListesi)
+            {
+                <tr style="@(rez.Durum == "Hazır" ? "background-color: #d1e7dd;" : "")">
+                    <td>@rez.UyeTamAdi</td>
+                    <td>@rez.KitapAdi</td>
+                    <td>@rez.RezervasyonTarihi.ToShortDateString()</td>
+                    <td>@rez.Durum</td>
+                    <td>
+                        @if (rez.Durum == "Hazır")
+                        {
+                            <button class="btn btn-sm btn-success">Emanet Ver</button>
+                        }
+                        <button class="btn btn-sm btn-danger" @onclick="() => HandleIptal(rez.Id)">İptal Et</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private Rezervasyon _yeniRezervasyonModeli = new();
+    private List<Uye>? _uyeListesi;
+    private List<Kitap>? _tumKitapListesi;
+    private List<Rezervasyon>? _aktifRezervasyonListesi;
+
+    protected override async Task OnInitializedAsync() { await VerileriGetir(); }
+    private async Task VerileriGetir()
+    {
+        try
+        {
+            var uyeTask = KutuphaneServisi.UyeListeleAsync();
+            var kitapTask = KutuphaneServisi.KitapListeleAsync();
+            var rezervasyonTask = KutuphaneServisi.GetAktifRezervasyonlarAsync();
+            await Task.WhenAll(uyeTask, kitapTask, rezervasyonTask);
+            _uyeListesi = await uyeTask;
+            _tumKitapListesi = await kitapTask;
+            _aktifRezervasyonListesi = await rezervasyonTask;
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Veriler yüklenirken hata oluştu: " + ex.Message); }
+    }
+    private async Task HandleRezervasyonYap()
+    {
+        try
+        {
+            await KutuphaneServisi.RezervasyonYapAsync(_yeniRezervasyonModeli.UyeId, _yeniRezervasyonModeli.KitapId);
+            await JSRuntime.InvokeVoidAsync("alert", "Rezervasyon başarıyla oluşturuldu.");
+            _yeniRezervasyonModeli = new(); await VerileriGetir();
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+    }
+    private async Task HandleIptal(int rezervasyonId)
+    {
+        try
+        {
+            bool onay = await JSRuntime.InvokeAsync<bool>("confirm", "Bu rezervasyonu iptal etmek istediğinize emin misiniz?");
+            if (onay)
+            {
+                await KutuphaneServisi.RezervasyonIptalAsync(rezervasyonId);
+                await JSRuntime.InvokeVoidAsync("alert", "Rezervasyon iptal edildi.");
+                await VerileriGetir();
+            }
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+    }
+}

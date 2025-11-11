@@ -1,0 +1,202 @@
+﻿@page "/kitaplar"
+@using KutuphaneOtomasyonu_242516042.Models
+@using KutuphaneOtomasyonu_242516042.Data
+@inject KutuphaneServisi KutuphaneServisi
+@inject IJSRuntime JSRuntime
+<PageTitle>Kitap Yönetimi</PageTitle>
+
+<h3>Kitap Yönetimi</h3>
+
+<EditForm Model="_model" OnValidSubmit="OnKaydet">
+    <DataAnnotationsValidator />
+    <div class="card shadow">
+        <div class="card-header">@(_model.Id == 0 ? "Yeni Kitap Ekle" : "Kitap Düzenle")</div>
+        <div class="card-body">
+            <input type="hidden" @bind-value="_model.Id" />
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">ISBN</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.ISBN" />
+                    <ValidationMessage For="@(() => _model.ISBN)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Kitap Adı</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.Ad" />
+                    <ValidationMessage For="@(() => _model.Ad)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Yazar</label>
+                <div class="col-sm-9">
+                    <InputSelect class="form-select" @bind-Value="_model.YazarId">
+                        <option value="0">-- Lütfen Yazar Seçin --</option>
+                        @if (_yazarListesi != null)
+                        {
+                            @foreach (var yazar in _yazarListesi)
+                            {
+                                <option value="@yazar.Id">@yazar.TamAd</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => _model.YazarId)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Kategori</label>
+                <div class="col-sm-9">
+                    <InputSelect class="form-select" @bind-Value="_model.KategoriId">
+                        <option value="0">-- Lütfen Kategori Seçin --</option>
+                        @if (_kategoriListesi != null)
+                        {
+                            @foreach (var kategori in _kategoriListesi)
+                            {
+                                <option value="@kategori.Id">@kategori.Ad</option>
+                            }
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => _model.KategoriId)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Yayın Evi</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.YayinEvi" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Yayın Yılı</label>
+                <div class="col-sm-9">
+                    <InputNumber class="form-control" @bind-Value="_model.YayinYili" />
+                </div>
+            </div>
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">@(_model.Id == 0 ? "Ekle" : "Güncelle")</button>
+            <button type="button" class="btn btn-secondary" @onclick="OnYeni">Yeni</button>
+        </div>
+    </div>
+</EditForm>
+<hr />
+
+<h5>Kütüphanedeki Kitaplar</h5>
+@if (_kitapListesi == null)
+{
+    <p><em>Kitaplar yükleniyor...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark">
+            <tr>
+                <th>Ad</th>
+                <th>ISBN</th>
+                <th>Yazar</th>
+                <th>Kategori</th>
+                <th>Durum</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var kitap in _kitapListesi)
+            {
+                <tr>
+                    <td>@kitap.Ad</td>
+                    <td>@kitap.ISBN</td>
+                    <td>@kitap.YazarTamAdi</td>
+                    <td>@kitap.KategoriAdi</td>
+                    <td>@kitap.Durum</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" @onclick="() => OnDuzenle(kitap)">Düzenle</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => OnSil(kitap.Id)">Sil</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Kitap>? _kitapListesi;
+    private List<Yazar>? _yazarListesi;
+    private List<Kategori>? _kategoriListesi;
+    private Kitap _model = new();
+    private string _operation = "add";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await VerileriGetir();
+    }
+
+    private async Task VerileriGetir()
+    {
+        try
+        {
+            var kitaplarTask = KutuphaneServisi.KitapListeleAsync();
+            var yazarlarTask = KutuphaneServisi.YazarListeleAsync();
+            var kategorilerTask = KutuphaneServisi.KategoriListeleAsync();
+
+            await Task.WhenAll(kitaplarTask, yazarlarTask, kategorilerTask);
+
+            _kitapListesi = await kitaplarTask;
+            _yazarListesi = await yazarlarTask;
+            _kategoriListesi = await kategorilerTask;
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Veri yüklenirken hata oluştu: " + ex.Message);
+        }
+    }
+
+    private void OnYeni()
+    {
+        _model = new();
+        _operation = "add";
+    }
+
+    private void OnDuzenle(Kitap secilenKitap)
+    {
+        _model = secilenKitap;
+        _operation = "update";
+    }
+
+    private async Task OnKaydet()
+    {
+        try
+        {
+            await KutuphaneServisi.KitapKaydetAsync(_model, _operation);
+            await JSRuntime.InvokeVoidAsync("alert", _operation == "add" ? "Kitap başarıyla eklendi!" : "Kitap güncellendi!");
+            await VerileriGetir();
+            OnYeni();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Kayıt sırasında hata oluştu: " + ex.Message);
+        }
+    }
+
+    private async Task OnSil(int id)
+    {
+        try
+        {
+            bool onay = await JSRuntime.InvokeAsync<bool>("confirm", "Bu kitabı silmek istediğinize emin misiniz? (Durum 'Silindi' olarak değişecek)");
+            if (onay)
+            {
+                await KutuphaneServisi.KitapSilAsync(id);
+                await JSRuntime.InvokeVoidAsync("alert", "Kitap silindi.");
+                await VerileriGetir();
+            }
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Silme sırasında hata oluştu: " + ex.Message);
+        }
+    }
+}

@@ -1,0 +1,59 @@
+﻿@page "/cezalar"
+@using KutuphaneOtomasyonu_242516042.Models
+@using KutuphaneOtomasyonu_242516042.Data
+@inject KutuphaneServisi KutuphaneServisi
+@inject IJSRuntime JSRuntime
+<PageTitle>Ceza Yönetimi</PageTitle>
+
+<h3>Ödenmemiş Gecikme Cezaları</h3>
+@if (_cezaListesi == null)
+{
+    <p><em>Yükleniyor...</em></p>
+}
+else if (!_cezaListesi.Any())
+{
+
+    <div class="alert alert-success">Ödenmemiş ceza bulunmamaktadır.</div>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark"><tr><th>Üye Adı</th><th>Açıklama</th><th>Tutar (TL)</th><th>Ceza Tarihi</th><th>İşlem</th></tr></thead>
+        <tbody>
+            @foreach (var ceza in _cezaListesi)
+            {
+                <tr>
+                    <td>@ceza.UyeTamAdi</td>
+                    <td>@ceza.Aciklama</td>
+                    <td>@ceza.CezaTutari.ToString("0.00") TL</td>
+                    <td>@ceza.CezaBitisTarihi.ToShortDateString()</td>
+                    <td><button class="btn btn-sm btn-success" @onclick="() => HandleCezaOde(ceza.Id)">Ödendi Olarak İşaretle</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Ceza>? _cezaListesi;
+    protected override async Task OnInitializedAsync() { await VerileriGetir(); }
+    private async Task VerileriGetir()
+    {
+        try { _cezaListesi = await KutuphaneServisi.GetOdenmemisCezalarAsync(); }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Cezalar yüklenirken hata oluştu: " + ex.Message); }
+    }
+    private async Task HandleCezaOde(int cezaId)
+    {
+        try
+        {
+            bool onay = await JSRuntime.InvokeAsync<bool>("confirm", "Bu ceza ödendi olarak işaretlenecek. Emin misiniz?");
+            if (onay)
+            {
+                await KutuphaneServisi.CezaOdeAsync(cezaId);
+                await JSRuntime.InvokeVoidAsync("alert", "Ceza ödendi.");
+                await VerileriGetir();
+            }
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+    }
+}

@@ -1,0 +1,119 @@
+﻿@page "/odunc-yonetimi"
+@using KutuphaneOtomasyonu_242516042.Models
+@using KutuphaneOtomasyonu_242516042.Data
+@inject KutuphaneServisi KutuphaneServisi
+@inject IJSRuntime JSRuntime
+<PageTitle>Emanet İşlemleri</PageTitle>
+
+<h3>Emanet İşlemleri</h3>
+<EditForm Model="_yeniIslemModeli" OnValidSubmit="HandleOduncVer">
+    <DataAnnotationsValidator />
+    <div class="card shadow mb-4">
+        <div class="card-header">Yeni Kitap Emanet Ver</div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-5">
+                    <label>Üye Seçin:</label>
+                    <InputSelect class="form-select" @bind-Value="_yeniIslemModeli.UyeId">
+                        <option value="0">-- Lütfen Üye Seçin --</option>
+                        @if (_uyeListesi != null)
+                        {
+                            @foreach(var uye in _uyeListesi) {
+                                <option value="@uye.Id">@uye.TamAd</option>
+                            }
+ }
+                    </InputSelect><ValidationMessage For="@(() => _yeniIslemModeli.UyeId)" />
+                </div>
+                <div class="col-md-5">
+                    <label>Müsait Kitabı Seçin:</label>
+                    <InputSelect class="form-select" @bind-Value="_yeniIslemModeli.KitapId">
+                        <option value="0">-- Lütfen Kitap Seçin --</option>
+                        @if (_musaitKitapListesi != null)
+                        {
+                            @foreach(var kitap in _musaitKitapListesi) {
+                                <option value="@kitap.Id">@kitap.Ad</option>
+                            }
+ }
+                    </InputSelect><ValidationMessage For="@(() => _yeniIslemModeli.KitapId)" />
+                </div>
+                <div class="col-md-2">
+                    <label>İade Tarihi:</label>
+                    <InputDate class="form-control" @bind-Value="_yeniIslemModeli.PlanlananIadeTarihi" />
+                </div>
+            </div>
+        </div>
+        <div class="card-footer"><button type="submit" class="btn btn-primary">Ödünç Ver</button></div>
+    </div>
+</EditForm>
+<hr />
+<h5>Şu Anda Emanette Olan Kitaplar</h5>
+@if (_aktifOduncListesi == null)
+{
+    <p><em>Yükleniyor...</em></p>
+}
+else
+{
+    <table class="table table-striped table-hover">
+        <thead class="table-dark"><tr><th>Kitap Adı</th><th>Üyenin Adı</th><th>Alış Tarihi</th><th>Planlanan İade Tarihi</th><th>İşlem</th></tr></thead>
+        <tbody>
+            @foreach (var islem in _aktifOduncListesi)
+            {
+                <tr style="@(islem.PlanlananIadeTarihi < DateTime.Today ? "background-color: #fff3cd;" : "")">
+                    <td>@islem.KitapAdi</td>
+                    <td>@islem.UyeTamAdi</td>
+                    <td>@islem.OduncAlmaTarihi.ToShortDateString()</td>
+                    <td>@islem.PlanlananIadeTarihi.ToShortDateString()</td>
+                    <td><button class="btn btn-sm btn-success" @onclick="() => HandleIadeAl(islem.Id)">İade Al</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private OduncIslemi _yeniIslemModeli = new();
+    private List<OduncIslemi>? _aktifOduncListesi;
+    private List<Uye>? _uyeListesi;
+    private List<Kitap>? _musaitKitapListesi;
+
+    protected override async Task OnInitializedAsync() { await VerileriGetir(); }
+    private async Task VerileriGetir()
+    {
+        try
+        {
+            var aktifOduncTask = KutuphaneServisi.GetAktifOduncListesiAsync();
+            var uyeTask = KutuphaneServisi.UyeListeleAsync();
+            var musaitKitapTask = KutuphaneServisi.GetMusaitKitapListesiAsync();
+            await Task.WhenAll(aktifOduncTask, uyeTask, musaitKitapTask);
+            _aktifOduncListesi = await aktifOduncTask;
+            _uyeListesi = await uyeTask;
+            _musaitKitapListesi = await musaitKitapTask;
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Veriler yüklenirken hata oluştu: " + ex.Message); }
+    }
+    private async Task HandleOduncVer()
+    {
+        try
+        {
+            await KutuphaneServisi.OduncVerAsync(_yeniIslemModeli.UyeId, _yeniIslemModeli.KitapId, _yeniIslemModeli.PlanlananIadeTarihi);
+            await JSRuntime.InvokeVoidAsync("alert", "Kitap başarıyla ödünç verildi!");
+            _yeniIslemModeli = new();
+            await VerileriGetir(); StateHasChanged();
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+    }
+    private async Task HandleIadeAl(int oduncId)
+    {
+        try
+        {
+            bool onay = await JSRuntime.InvokeAsync<bool>("confirm", "Bu kitap iade alındı olarak işaretlenecek. Emin misiniz?");
+            if (onay)
+            {
+                await KutuphaneServisi.IadeAlAsync(oduncId);
+                await JSRuntime.InvokeVoidAsync("alert", "Kitap başarıyla iade alındı!");
+                await VerileriGetir(); StateHasChanged();
+            }
+        }
+        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Hata: " + ex.Message); }
+    }
+}
