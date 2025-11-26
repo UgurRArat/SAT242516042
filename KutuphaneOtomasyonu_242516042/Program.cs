@@ -1,9 +1,13 @@
+using DbContexts;
 using KutuphaneOtomasyonu_242516042.Components;
 using KutuphaneOtomasyonu_242516042.Components.Account;
 using KutuphaneOtomasyonu_242516042.Data;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using MyDbModels;
+using Providers;
+using UnitOfWorks;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,15 +21,18 @@ builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
+{
+    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+})
     .AddIdentityCookies();
 
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(connectionString));
+
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.RequireConfirmedAccount = true)
@@ -35,10 +42,23 @@ builder.Services.AddIdentityCore<ApplicationUser>(options => options.SignIn.Requ
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
-// --- BU ÝKÝ SATIRI EKLE ---
-builder.Services.AddSingleton<IConfiguration>(builder.Configuration);
+// --- EKLENEN 2: Yönerge Madde 46'da Ýstenen Servisler ---
+// --- DÜZELTÝLMÝÞ SERVÝS KAYITLARI ---
+
+// 1. DbContext (Bu genelde düzdür, hata vermez ama sýrasý önemli)
+builder.Services.AddDbContext<MyDbModel_DbContext>(options =>
+    options.UseSqlServer(connectionString));
+
+// 2. Provider (Bu da düzdür)
+builder.Services.AddScoped<MyDbModel_Provider>();
+
+builder.Services.AddScoped<IMyDbModel_UnitOfWork, MyDbModel_UnitOfWork<MyDbModel_DbContext>>();
+
+// 4. MyDbModel (HATA BURADAYDI: Bu genel bir yapý olduðu için "typeof" ile kaydetmeliyiz)
+builder.Services.AddScoped(typeof(MyDbModel<>));
+
+// Senin kendi servisin
 builder.Services.AddScoped<KutuphaneServisi>();
-// --- EKLEME BÝTTÝ ---
 
 var app = builder.Build();
 
@@ -50,7 +70,6 @@ if (app.Environment.IsDevelopment())
 else
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

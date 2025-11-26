@@ -3,11 +3,22 @@
 @using KutuphaneOtomasyonu_242516042.Data
 @inject KutuphaneServisi KutuphaneServisi
 @inject IJSRuntime JSRuntime
+
+@rendermode InteractiveServer
+
 <PageTitle>Kitap Yönetimi</PageTitle>
 
 <h3>Kitap Yönetimi</h3>
 
-<EditForm Model="_model" OnValidSubmit="OnKaydet">
+@if (!string.IsNullOrEmpty(_hataMesaji))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Hata Oluştu:</strong> @_hataMesaji
+        <button type="button" class="btn-close" @onclick="HataKapat" aria-label="Close"></button>
+    </div>
+}
+
+<EditForm Model="_model" OnValidSubmit="OnKaydet" FormName="KitapFormu">
     <DataAnnotationsValidator />
     <div class="card shadow">
         <div class="card-header">@(_model.Id == 0 ? "Yeni Kitap Ekle" : "Kitap Düzenle")</div>
@@ -100,6 +111,7 @@ else
                 <th>ISBN</th>
                 <th>Yazar</th>
                 <th>Kategori</th>
+                <th>Basım Türü</th>
                 <th>Durum</th>
                 <th>İşlemler</th>
             </tr>
@@ -112,6 +124,7 @@ else
                     <td>@kitap.ISBN</td>
                     <td>@kitap.YazarTamAdi</td>
                     <td>@kitap.KategoriAdi</td>
+                    <td><span class="badge bg-info text-dark">@kitap.BasimTuru</span></td>
                     <td>@kitap.Durum</td>
                     <td>
                         <button class="btn btn-sm btn-success" @onclick="() => OnDuzenle(kitap)">Düzenle</button>
@@ -128,7 +141,8 @@ else
     private List<Yazar>? _yazarListesi;
     private List<Kategori>? _kategoriListesi;
     private Kitap _model = new();
-    private string _operation = "add";
+    private string _operation = "insert"; // SQL ile uyumlu olması için 'insert' yaptık
+    private string? _hataMesaji;
 
     protected override async Task OnInitializedAsync()
     {
@@ -137,6 +151,7 @@ else
 
     private async Task VerileriGetir()
     {
+        _hataMesaji = null;
         try
         {
             var kitaplarTask = KutuphaneServisi.KitapListeleAsync();
@@ -151,20 +166,28 @@ else
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Veri yüklenirken hata oluştu: " + ex.Message);
+            _hataMesaji = "Veriler yüklenirken bir sorun oluştu: " + ex.Message;
+            _kitapListesi ??= new List<Kitap>();
         }
+    }
+
+    private void HataKapat()
+    {
+        _hataMesaji = null;
     }
 
     private void OnYeni()
     {
         _model = new();
-        _operation = "add";
+        _operation = "insert"; // Ekleme moduna geç
+        _hataMesaji = null;
     }
 
     private void OnDuzenle(Kitap secilenKitap)
     {
         _model = secilenKitap;
-        _operation = "update";
+        _operation = "update"; // Güncelleme moduna geç
+        _hataMesaji = null;
     }
 
     private async Task OnKaydet()
@@ -172,13 +195,14 @@ else
         try
         {
             await KutuphaneServisi.KitapKaydetAsync(_model, _operation);
-            await JSRuntime.InvokeVoidAsync("alert", _operation == "add" ? "Kitap başarıyla eklendi!" : "Kitap güncellendi!");
+
+            // Başarılı olursa listeyi yenile ve formu temizle
             await VerileriGetir();
             OnYeni();
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Kayıt sırasında hata oluştu: " + ex.Message);
+            _hataMesaji = "Kayıt sırasında hata oluştu: " + ex.Message;
         }
     }
 
@@ -190,13 +214,12 @@ else
             if (onay)
             {
                 await KutuphaneServisi.KitapSilAsync(id);
-                await JSRuntime.InvokeVoidAsync("alert", "Kitap silindi.");
                 await VerileriGetir();
             }
         }
         catch (Exception ex)
         {
-            await JSRuntime.InvokeVoidAsync("alert", "Silme sırasında hata oluştu: " + ex.Message);
+            _hataMesaji = "Silme sırasında hata oluştu: " + ex.Message;
         }
     }
 }

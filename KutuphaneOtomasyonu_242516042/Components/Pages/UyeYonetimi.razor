@@ -3,27 +3,58 @@
 @using KutuphaneOtomasyonu_242516042.Data
 @inject KutuphaneServisi KutuphaneServisi
 @inject IJSRuntime JSRuntime
+
+@rendermode InteractiveServer
+
 <PageTitle>Üye Yönetimi</PageTitle>
 
 <h3>Üye Yönetimi</h3>
-<EditForm Model="_model" OnValidSubmit="OnKaydet">
+
+@if (!string.IsNullOrEmpty(_hataMesaji))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <strong>Hata Oluştu:</strong> @_hataMesaji
+        <button type="button" class="btn-close" @onclick="HataKapat" aria-label="Close"></button>
+    </div>
+}
+
+<EditForm Model="_model" OnValidSubmit="OnKaydet" FormName="UyeFormu">
     <DataAnnotationsValidator />
     <div class="card shadow">
         <div class="card-header">@(_model.Id == 0 ? "Yeni Üye Ekle" : "Üye Düzenle")</div>
         <div class="card-body">
             <input type="hidden" @bind-value="_model.Id" />
-            <div class="mb-3 row"><label class="col-sm-3 col-form-label">Ad</label><div class="col-sm-9">
-                <InputText class="form-control" @bind-Value="_model.Ad" /><ValidationMessage For="@(() => _model.Ad)" /></div></div>
-            <div class="mb-3 row"><label class="col-sm-3 col-form-label">Soyad</label><div class="col-sm-9">
-                <InputText class="form-control" @bind-Value="_model.Soyad" /><ValidationMessage For="@(() => _model.Soyad)" /></div></div>
-            <div class="mb-3 row"><label class="col-sm-3 col-form-label">Email</label><div class="col-sm-9">
-                <InputText class="form-control" @bind-Value="_model.Email" /><ValidationMessage For="@(() => _model.Email)" /></div></div>
-             <div class="mb-3 row"><label class="col-sm-3 col-form-label">TC Kimlik</label><div class="col-sm-9">
-                <InputText class="form-control" @bind-Value="_model.TCKimlik" /><ValidationMessage For="@(() => _model.TCKimlik)" /></div></div>
-            <div class="mb-3 row"><label class="col-sm-3 col-form-label">Telefon</label><div class="col-sm-9">
-                <InputText class="form-control" @bind-Value="_model.Telefon" /></div></div>
-            <div class="mb-3 row"><label class="col-sm-3 col-form-label">Adres</label><div class="col-sm-9">
-                <InputTextArea class="form-control" @bind-Value="_model.Adres" /></div></div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Ad</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.Ad" />
+                    <ValidationMessage For="@(() => _model.Ad)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Soyad</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.Soyad" />
+                    <ValidationMessage For="@(() => _model.Soyad)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Email</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.Email" />
+                    <ValidationMessage For="@(() => _model.Email)" />
+                </div>
+            </div>
+
+            <div class="mb-3 row">
+                <label class="col-sm-3 col-form-label">Telefon</label>
+                <div class="col-sm-9">
+                    <InputText class="form-control" @bind-Value="_model.Telefon" />
+                </div>
+            </div>
         </div>
         <div class="card-footer">
             <button type="submit" class="btn btn-primary">@(_model.Id == 0 ? "Ekle" : "Güncelle")</button>
@@ -32,15 +63,34 @@
     </div>
 </EditForm>
 <hr />
+
 <h5>Kayıtlı Üyeler</h5>
-@if (_uyeListesi == null) { <p><em>Üyeler yükleniyor...</em></p> }
-else {
+@if (_uyeListesi == null)
+{
+    <p><em>Üyeler yükleniyor...</em></p>
+}
+else
+{
     <table class="table table-striped table-hover">
-        <thead class="table-dark"><tr><th>Ad Soyad</th><th>Email</th><th>Telefon</th><th>TC Kimlik</th><th>İşlemler</th></tr></thead>
+        <thead class="table-dark">
+            <tr>
+                <th>Ad Soyad</th>
+                <th>Email</th>
+                <th>Telefon</th>
+                <th>Ceza Puanı</th>
+                <th>Durum</th>
+                <th>İşlemler</th>
+            </tr>
+        </thead>
         <tbody>
-            @foreach (var uye in _uyeListesi) {
+            @foreach (var uye in _uyeListesi)
+            {
                 <tr>
-                    <td>@uye.TamAd</td><td>@uye.Email</td><td>@uye.Telefon</td><td>@uye.TCKimlik</td>
+                    <td>@uye.TamAd</td>
+                    <td>@uye.Email</td>
+                    <td>@uye.Telefon</td>
+                    <td>@uye.CezaPuani</td>
+                    <td>@uye.Durum</td>
                     <td>
                         <button class="btn btn-sm btn-success" @onclick="() => OnDuzenle(uye)">Düzenle</button>
                         <button class="btn btn-sm btn-danger" @onclick="() => OnSil(uye.Id)">Sil</button>
@@ -55,29 +105,76 @@ else {
     private List<Uye>? _uyeListesi;
     private Uye _model = new();
     private string _operation = "add";
+    private string? _hataMesaji;
 
-    protected override async Task OnInitializedAsync() { await VerileriGetir(); }
-    private async Task VerileriGetir() {
-        try { _uyeListesi = await KutuphaneServisi.UyeListeleAsync(); } 
-        catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Üye verisi yüklenirken hata oluştu: " + ex.Message); }
+    protected override async Task OnInitializedAsync()
+    {
+        await VerileriGetir();
     }
-    private void OnYeni() { _model = new(); _operation = "add"; }
-    private void OnDuzenle(Uye secilenUye) { _model = secilenUye; _operation = "update"; }
-    private async Task OnKaydet() {
-        try {
+
+    private async Task VerileriGetir()
+    {
+        _hataMesaji = null;
+        try
+        {
+            _uyeListesi = await KutuphaneServisi.UyeListeleAsync();
+        }
+        catch (Exception ex)
+        {
+            _hataMesaji = "Üye verisi yüklenirken hata oluştu: " + ex.Message;
+            _uyeListesi ??= new List<Uye>();
+        }
+    }
+
+    private void HataKapat()
+    {
+        _hataMesaji = null;
+    }
+
+    private void OnYeni()
+    {
+        _model = new();
+        _operation = "insert";
+        _hataMesaji = null;
+    }
+
+    private void OnDuzenle(Uye secilenUye)
+    {
+        _model = secilenUye;
+        _operation = "update";
+        _hataMesaji = null;
+    }
+
+    private async Task OnKaydet()
+    {
+        try
+        {
             await KutuphaneServisi.UyeKaydetAsync(_model, _operation);
-            await JSRuntime.InvokeVoidAsync("alert", _operation == "add" ? "Üye başarıyla eklendi!" : "Üye güncellendi!");
+
+            // Başarılı olursa formu temizle ve listeyi yenile
             await VerileriGetir();
-        } catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Kayıt sırasında hata oluştu: " + ex.Message); }
+            OnYeni();
+        }
+        catch (Exception ex)
+        {
+            _hataMesaji = "Kayıt sırasında hata oluştu: " + ex.Message;
+        }
     }
-    private async Task OnSil(int id) {
-        try {
-            bool onay = await JSRuntime.InvokeAsync<bool>("confirm", "Bu üyeyi pasif hale getirmek istediğinize emin misiniz?");
-            if (onay) {
+
+    private async Task OnSil(int id)
+    {
+        try
+        {
+            bool onay = await JSRuntime.InvokeAsync<bool>("confirm", "Bu üyeyi silmek istediğinize emin misiniz?");
+            if (onay)
+            {
                 await KutuphaneServisi.UyeSilAsync(id);
-                await JSRuntime.InvokeVoidAsync("alert", "Üye pasif hale getirildi.");
                 await VerileriGetir();
             }
-        } catch (Exception ex) { await JSRuntime.InvokeVoidAsync("alert", "Silme sırasında hata oluştu: " + ex.Message); }
+        }
+        catch (Exception ex)
+        {
+            _hataMesaji = "Silme sırasında hata oluştu: " + ex.Message;
+        }
     }
 }

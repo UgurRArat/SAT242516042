@@ -22,4 +22,9 @@
     <PackageReference Include="System.Data.SqlClient" Version="4.9.0" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="_Documents\" />
+    <Folder Include="_DbScripts\" />
+  </ItemGroup>
+
 </Project>

@@ -1,0 +1,84 @@
+﻿@page "/kategoriler"
+@using KutuphaneOtomasyonu_242516042.Models
+@using KutuphaneOtomasyonu_242516042.Data
+@inject KutuphaneServisi KutuphaneServisi
+@inject IJSRuntime JSRuntime
+<PageTitle>Kategori Yönetimi</PageTitle>
+
+<h3>Kategori Yönetimi</h3>
+
+@if (!string.IsNullOrEmpty(_hataMesaji))
+{
+    <div class="alert alert-danger">@_hataMesaji <button class="btn-close" @onclick="HataKapat"></button></div>
+}
+
+<EditForm Model="_model" OnValidSubmit="OnKaydet" FormName="KategoriFormu">
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <label>Kategori Adı</label>
+            <InputText class="form-control" @bind-Value="_model.Ad" />
+        </div>
+        <div class="card-footer">
+            <button type="submit" class="btn btn-primary">Kaydet</button>
+            <button type="button" class="btn btn-secondary" @onclick="OnYeni">Temizle</button>
+        </div>
+    </div>
+</EditForm>
+
+@if (_kategoriListesi != null)
+{
+    <table class="table table-striped">
+        <thead class="table-dark"><tr><th>Kategori Adı</th><th>Durum</th><th>İşlem</th></tr></thead>
+        <tbody>
+            @foreach (var k in _kategoriListesi)
+            {
+                <tr>
+                    <td>@k.Ad</td>
+                    <td>@k.Durum</td>
+                    <td>
+                        <button class="btn btn-sm btn-success" @onclick="() => OnDuzenle(k)">Düzenle</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => OnSil(k.Id)">Sil</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<Kategori>? _kategoriListesi;
+    private Kategori _model = new();
+    private string _operation = "add";
+    private string? _hataMesaji;
+
+    protected override async Task OnInitializedAsync() { await VerileriGetir(); }
+
+    private async Task VerileriGetir()
+    {
+        try { _kategoriListesi = await KutuphaneServisi.KategoriListeleAsync(); }
+        catch (Exception ex) { _hataMesaji = ex.Message; }
+    }
+    private void HataKapat() { _hataMesaji = null; }
+    private void OnYeni() { _model = new(); _operation = "add"; }
+    private void OnDuzenle(Kategori k) { _model = k; _operation = "update"; }
+
+    private async Task OnKaydet()
+    {
+        try
+        {
+            await KutuphaneServisi.KategoriKaydetAsync(_model, _operation);
+            await VerileriGetir();
+            OnYeni();
+        }
+        catch (Exception ex) { _hataMesaji = ex.Message; }
+    }
+
+    private async Task OnSil(int id)
+    {
+        if (await JSRuntime.InvokeAsync<bool>("confirm", "Silinsin mi?"))
+        {
+            await KutuphaneServisi.KategoriSilAsync(id);
+            await VerileriGetir();
+        }
+    }
+}
