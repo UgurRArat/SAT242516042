@@ -1,7 +1,153 @@
 ﻿@page "/"
+@using KutuphaneOtomasyonu_242516042.Models
+@using KutuphaneOtomasyonu_242516042.Data
+@inject KutuphaneServisi KutuphaneServisi
+@inject AuthenticationStateProvider AuthStateProvider
 
-<PageTitle>Home</PageTitle>
+<PageTitle>Ana Sayfa - Kütüphane Otomasyonu</PageTitle>
 
-<h1>Hello, world!</h1>
+<div class="container-fluid mt-3">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-light border-0 shadow-sm">
+                <div class="card-body p-4">
+                    <h2 class="display-6 text-primary fw-bold">Hoş Geldiniz 👋</h2>
+                    <p class="lead mb-0">Kütüphane Yönetim Sistemi kontrol paneline erişmektesiniz. Güncel istatistikler aşağıdadır.</p>
+                </div>
+            </div>
+        </div>
+    </div>
 
-Welcome to your new app.
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Toplam Kitap</h5>
+                    <h2 class="fw-bold">@_kitapSayisi</h2>
+                    <p class="card-text"><small>Kütüphanedeki aktif kitaplar</small></p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="/kitaplar" class="text-white text-decoration-none">Yönet &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-success shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Kayıtlı Üye</h5>
+                    <h2 class="fw-bold">@_uyeSayisi</h2>
+                    <p class="card-text"><small>Aktif kütüphane üyeleri</small></p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="/uyeler" class="text-white text-decoration-none">Yönet &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-warning shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Ödünç Alındı</h5>
+                    <h2 class="fw-bold">@_aktifOduncSayisi</h2>
+                    <p class="card-text"><small>Şu an üyelerde olan kitaplar</small></p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="/odunc-yonetimi" class="text-white text-decoration-none">Detaylar &rarr;</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card text-white bg-danger shadow h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Ödenmemiş Ceza</h5>
+                    <h2 class="fw-bold">@_cezaSayisi</h2>
+                    <p class="card-text"><small>Gecikme cezası olan işlemler</small></p>
+                </div>
+                <div class="card-footer bg-transparent border-0">
+                    <a href="/cezalar" class="text-white text-decoration-none">Ödeme Al &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-dark text-white">
+                    Hızlı İşlemler
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="/odunc-yonetimi" class="btn btn-outline-primary btn-lg text-start">
+                            📖 Kitap Ödünç Ver / İade Al
+                        </a>
+                        <a href="/kitaplar" class="btn btn-outline-secondary btn-lg text-start">
+                            📚 Yeni Kitap Kaydı Oluştur
+                        </a>
+                        <a href="/uyeler" class="btn btn-outline-info btn-lg text-start">
+                            👤 Yeni Üye Kaydı Yap
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card shadow">
+                <div class="card-header bg-secondary text-white">
+                    Sistem Durumu
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Sunucu Durumu
+                            <span class="badge bg-success rounded-pill">Aktif</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Veritabanı Bağlantısı
+                            <span class="badge bg-success rounded-pill">Bağlı</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            Tarih
+                            <span>@DateTime.Now.ToLongDateString()</span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private int _kitapSayisi = 0;
+    private int _uyeSayisi = 0;
+    private int _aktifOduncSayisi = 0;
+    private int _cezaSayisi = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            // Var olan servis metotlarını kullanarak sayıları çekiyoruz
+            // SQL'de count(*) yapmak daha performanslıdır ama şimdilik elimizdeki listeleri saydırarak hızlı çözüm üretiyoruz.
+
+            var kitaplar = await KutuphaneServisi.KitapListeleAsync();
+            _kitapSayisi = kitaplar.Count;
+
+            var uyeler = await KutuphaneServisi.UyeListeleAsync();
+            _uyeSayisi = uyeler.Count;
+
+            var oduncler = await KutuphaneServisi.GetAktifOduncListesiAsync();
+            _aktifOduncSayisi = oduncler.Count;
+
+            var cezalar = await KutuphaneServisi.GetOdenmemisCezalarAsync();
+            _cezaSayisi = cezalar.Count;
+        }
+        catch (Exception)
+        {
+            // Hata olursa sayaçlar 0 kalır, sayfa patlamaz.
+        }
+    }
+}
