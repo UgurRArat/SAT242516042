@@ -18,8 +18,7 @@ namespace KutuphaneOtomasyonu_242516042.Models
 
         public string Durum { get; set; } = "Mevcut";
 
-        // NOT: EklemeTarihi'ni SQL prosedüründe kullanmadığımız için sildim.
-        // Eğer veritabanında bu sütun varsa ve otomatik doluyorsa burada durabilir ama mapping hatası olmasın diye kaldırdım.
+        
 
         [Required(ErrorMessage = "Yazar seçimi zorunludur.")]
         [Range(1, int.MaxValue, ErrorMessage = "Lütfen bir yazar seçin.")]
@@ -31,7 +30,7 @@ namespace KutuphaneOtomasyonu_242516042.Models
 
         // --- SQL PROSEDÜRÜNDEN GELEN EKSTRA BİLGİLER ---
 
-        // SQL'de "YazarTamAdi" olarak gönderdiğimiz için burada set edilebilir özellik yaptık.
+        
         public string? YazarTamAdi { get; set; }
 
         // SQL'den gelen kategori ismi
