@@ -4,11 +4,11 @@ using Microsoft.EntityFrameworkCore;
 using SAT242516042.Components;
 using SAT242516042.Components.Account;
 using SAT242516042.Data;
-// Hocanýn namespace'lerini ekliyoruz
+
 using DbContexts;
 using UnitOfWorks;
 using Providers;
-// Loglama servislerinin olduðu namespace'i ekle
+
 using SAT242516042.Services;
 using QuestPDF.Infrastructure; // Namespace ekle
 
