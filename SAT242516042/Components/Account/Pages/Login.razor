@@ -1,0 +1,306 @@
+﻿@page "/Account/Login"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Identity
+@using SAT242516042.Data
+
+@inject SignInManager<ApplicationUser> SignInManager
+@inject ILogger<Login> Logger
+@inject NavigationManager NavigationManager
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Giriş Yap</PageTitle>
+
+<style>
+    :root {
+        --bg-color: #0f172a; /* Çok koyu lacivert */
+        --card-bg: #1e293b; /* Kart rengi */
+        --accent: #38bdf8; /* Elektrik Mavisi */
+        --accent-glow: rgba(56, 189, 248, 0.5);
+        --text-main: #f1f5f9;
+        --text-muted: #94a3b8;
+    }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-main);
+        overflow-x: hidden;
+    }
+
+    .login-wrapper {
+        min-height: 100vh;
+        display: flex;
+        width: 100%;
+    }
+
+    /* SOL TARAFTAKİ GÖRSEL ALANI */
+    .left-panel {
+        flex: 1;
+        background: url('https://images.unsplash.com/photo-1550751827-4bd374c3f58b?q=80&w=2070&auto=format&fit=crop') no-repeat center center/cover;
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        justify-content: flex-end;
+        padding: 50px;
+    }
+
+        /* Görselin üzerine koyu filtre */
+        .left-panel::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(to top, #0f172a 10%, rgba(15, 23, 42, 0.4) 100%);
+        }
+
+    .panel-content {
+        position: relative;
+        z-index: 2;
+        max-width: 600px;
+    }
+
+        .panel-content h1 {
+            font-size: 3.5rem;
+            font-weight: 800;
+            line-height: 1.1;
+            margin-bottom: 20px;
+            background: linear-gradient(90deg, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+    /* SAĞ TARAFTAKİ FORM ALANI */
+    .right-panel {
+        flex: 0.8;
+        background-color: var(--bg-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 40px;
+    }
+
+    .login-box {
+        width: 100%;
+        max-width: 400px;
+        animation: slideIn 0.8s ease-out;
+    }
+
+   @@keyframes slideIn {
+        from
+
+    {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+
+    }
+
+    .header-text h2 {
+        font-weight: 700;
+        color: var(--text-main);
+    }
+
+    /* INPUT STİLLERİ */
+    .modern-input-group {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .modern-input {
+        width: 100%;
+        background: var(--card-bg);
+        border: 2px solid transparent;
+        padding: 15px 15px 15px 45px; /* İkon için soldan boşluk */
+        border-radius: 12px;
+        color: #fff;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+        .modern-input:focus {
+            outline: none;
+            border-color: var(--accent);
+            box-shadow: 0 0 15px var(--accent-glow);
+            background: #253248;
+        }
+
+    .input-icon {
+        position: absolute;
+        left: 15px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        transition: color 0.3s;
+    }
+
+    .modern-input:focus + .input-icon {
+        color: var(--accent);
+    }
+
+    /* BUTON STİLİ */
+    .btn-neon {
+        width: 100%;
+        padding: 15px;
+        background: var(--accent);
+        color: #0f172a;
+        font-weight: 700;
+        border: none;
+        border-radius: 12px;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+        .btn-neon:hover {
+            background: #fff;
+            box-shadow: 0 0 25px var(--accent-glow);
+            transform: translateY(-2px);
+        }
+
+    /* MOBİL UYUMLULUK */
+    @@media (max-width: 900px) {
+        .left-panel
+
+    {
+        display: none;
+    }
+
+    .right-panel {
+        flex: 1;
+    }
+
+    }
+
+    .link-accent {
+        color: var(--accent);
+        text-decoration: none;
+        font-weight: 500;
+    }
+
+        .link-accent:hover {
+            text-decoration: underline;
+        }
+</style>
+
+<div class="login-wrapper">
+    <div class="left-panel">
+        <div class="panel-content">
+            <h1>Geleceği<br>Kodlamaya<br>Başla.</h1>
+            <p class="text-white-50 fs-5">Kütüphane arşivine erişmek ve projelerini yönetmek için sisteme giriş yap.</p>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="login-box">
+            <div class="header-text mb-5">
+                <h2>Tekrar Hoş Geldin! 👋</h2>
+                <p class="text-muted">Devam etmek için bilgilerinle giriş yap.</p>
+            </div>
+
+            <StatusMessage Message="@errorMessage" />
+
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator />
+
+                <div class="modern-input-group">
+                    <InputText id="email" @bind-Value="Input.Email" class="modern-input" placeholder="E-Posta Adresi" autocomplete="username" />
+                    <i class="bi bi-envelope-fill input-icon"></i>
+                    <ValidationMessage For="() => Input.Email" class="text-danger small mt-1" />
+                </div>
+
+                <div class="modern-input-group">
+                    <InputText type="password" id="password" @bind-Value="Input.Password" class="modern-input" placeholder="Şifre" autocomplete="current-password" />
+                    <i class="bi bi-lock-fill input-icon"></i>
+                    <ValidationMessage For="() => Input.Password" class="text-danger small mt-1" />
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div class="form-check form-switch">
+                        <InputCheckbox id="remember-me" @bind-Value="Input.RememberMe" class="form-check-input bg-dark border-secondary" />
+                        <label class="form-check-label text-muted small" for="remember-me">Beni Hatırla</label>
+                    </div>
+                    <a href="Account/ForgotPassword" class="link-accent small">Şifremi Unuttum?</a>
+                </div>
+
+                <button type="submit" class="btn-neon">
+                    Giriş Yap
+                </button>
+
+                <div class="text-center mt-4">
+                    <span class="text-muted">Hesabın yok mu?</span>
+                    <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))" class="link-accent ms-1">
+                        Kayıt Ol
+                    </a>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string? errorMessage;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (HttpMethods.IsGet(HttpContext.Request.Method))
+        {
+            await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
+        }
+    }
+
+    public async Task LoginUser()
+    {
+        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
+        if (result.Succeeded)
+        {
+            Logger.LogInformation("User logged in.");
+            RedirectManager.RedirectTo(ReturnUrl);
+        }
+        else if (result.RequiresTwoFactor)
+        {
+            RedirectManager.RedirectTo("Account/LoginWith2fa", new() { ["ReturnUrl"] = ReturnUrl, ["RememberMe"] = Input.RememberMe });
+        }
+        else if (result.IsLockedOut)
+        {
+            Logger.LogWarning("User account locked out.");
+            RedirectManager.RedirectTo("Account/Lockout");
+        }
+        else
+        {
+            errorMessage = "Hatalı giriş denemesi.";
+        }
+    }
+
+    private sealed class InputModel
+    {
+        [Required]
+        [EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required]
+        [DataType(DataType.Password)]
+        public string Password { get; set; } = "";
+
+        [Display(Name = "Remember me?")]
+        public bool RememberMe { get; set; }
+    }
+}

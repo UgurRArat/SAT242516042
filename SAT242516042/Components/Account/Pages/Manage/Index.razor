@@ -1,0 +1,108 @@
+﻿@page "/Account/Manage"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using SAT242516042.Data
+
+@inject UserManager<ApplicationUser> UserManager
+@inject SignInManager<ApplicationUser> SignInManager
+@inject IdentityUserAccessor UserAccessor
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Profil Bilgileri</PageTitle>
+
+<h3 class="fw-bold text-dark mb-4">Profil Bilgileri</h3>
+<StatusMessage />
+
+<div class="row">
+    <div class="col-md-8">
+        <EditForm Model="Input" FormName="profile" OnValidSubmit="OnValidSubmitAsync" method="post">
+            <DataAnnotationsValidator />
+
+            <div class="mb-4">
+                <label class="form-label text-muted fw-bold small">Kullanıcı Adı</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-light border-0"><i class="bi bi-person-fill text-primary"></i></span>
+                    <input type="text" value="@username" class="form-control bg-light border-0 py-3" placeholder="Kullanıcı adınız yükleniyor..." disabled />
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label text-muted fw-bold small">Telefon Numarası</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0" style="border-color: #eee;"><i class="bi bi-telephone-fill text-muted"></i></span>
+                    <InputText @bind-Value="Input.PhoneNumber" class="form-control py-3 border-start-0" placeholder="Telefon numaranızı giriniz" style="border-color: #eee;" />
+                </div>
+                <ValidationMessage For="() => Input.PhoneNumber" class="text-danger small mt-1" />
+            </div>
+
+            <button type="submit" class="btn btn-gradient w-100 py-3 rounded-pill fw-bold text-white mt-2">
+                <i class="bi bi-check-lg me-2"></i> Değişiklikleri Kaydet
+            </button>
+        </EditForm>
+    </div>
+</div>
+
+<style>
+    .form-control:focus {
+        border-color: #764ba2;
+        box-shadow: 0 0 0 0.25rem rgba(118, 75, 162, 0.1);
+    }
+
+    .btn-gradient {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        transition: transform 0.2s;
+        box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+    }
+
+        .btn-gradient:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(118, 75, 162, 0.4);
+            background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+        }
+</style>
+
+@code {
+    private ApplicationUser user = default!;
+    private string? username;
+    private string? phoneNumber;
+
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        user = await UserAccessor.GetRequiredUserAsync(HttpContext);
+        username = await UserManager.GetUserNameAsync(user);
+        phoneNumber = await UserManager.GetPhoneNumberAsync(user);
+
+        Input.PhoneNumber ??= phoneNumber;
+    }
+
+    private async Task OnValidSubmitAsync()
+    {
+        if (Input.PhoneNumber != phoneNumber)
+        {
+            var setPhoneResult = await UserManager.SetPhoneNumberAsync(user, Input.PhoneNumber);
+            if (!setPhoneResult.Succeeded)
+            {
+                RedirectManager.RedirectToCurrentPageWithStatus("Hata: Telefon numarası güncellenemedi.", HttpContext);
+                return;
+            }
+        }
+
+        await SignInManager.RefreshSignInAsync(user);
+        RedirectManager.RedirectToCurrentPageWithStatus("Profiliniz başarıyla güncellendi", HttpContext);
+    }
+
+    private sealed class InputModel
+    {
+        [Phone(ErrorMessage = "Lütfen geçerli bir telefon numarası giriniz.")]
+        [Display(Name = "Phone number")]
+        public string? PhoneNumber { get; set; }
+    }
+}

@@ -1,0 +1,88 @@
+﻿@page "/"
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Anasayfa</PageTitle>
+
+<div class="container mt-4">
+    <div class="p-5 mb-4 bg-light rounded-3 shadow-sm border">
+        <div class="container-fluid py-2">
+            <AuthorizeView>
+                <h1 class="display-5 fw-bold text-primary">Merhaba, @context.User.Identity?.Name!</h1>
+            </AuthorizeView>
+            <p class="col-md-8 fs-4 mt-3">Kütüphane Otomasyon Sistemine hoş geldiniz.</p>
+            <p>Aşağıdaki hızlı erişim kartlarını kullanarak işlemlerinizi kolayca gerçekleştirebilirsiniz.</p>
+        </div>
+    </div>
+
+    <div class="row align-items-md-stretch">
+
+        <AuthorizeView Roles="Yonetici,Kutuphaneci">
+            <Authorized>
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-primary shadow-sm">
+                        <div class="card-header bg-primary text-white">
+                            <i class="bi bi-book-fill"></i> Kitap İşlemleri
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Kitap Yönetimi</h5>
+                            <p class="card-text">Yeni kitap ekleme, stok güncelleme ve kitap listeleme işlemleri.</p>
+                            <a href="kitaplar" class="btn btn-outline-primary w-100">Yönet &raquo;</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-success shadow-sm">
+                        <div class="card-header bg-success text-white">
+                            <i class="bi bi-person-lines-fill"></i> Yazar İşlemleri
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Yazar Yönetimi</h5>
+                            <p class="card-text">Yazar biyografileri, yeni yazar kaydı ve düzenleme işlemleri.</p>
+                            <a href="yazarlar" class="btn btn-outline-success w-100">Yönet &raquo;</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4 mb-4">
+                    <div class="card h-100 border-warning shadow-sm">
+                        <div class="card-header bg-warning text-dark">
+                            <i class="bi bi-bar-chart-fill"></i> İstatistikler
+                        </div>
+                        <div class="card-body">
+                            <h5 class="card-title">Raporlar & Grafikler</h5>
+                            <p class="card-text">Kütüphane doluluk oranları ve kategori dağılım grafikleri.</p>
+                            <a href="istatistikler" class="btn btn-outline-warning w-100">İncele &raquo;</a>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+
+        <AuthorizeView Roles="Uye">
+            <Authorized>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm border-info">
+                        <div class="card-body text-center">
+                            <h3 class="display-6 text-info"><i class="bi bi-search"></i></h3>
+                            <h5 class="card-title mt-3">Kitap Kataloğu</h5>
+                            <p class="card-text">Kütüphanedeki eşsiz kitap arşivini keşfetmeye başla.</p>
+                            <a href="kitaplar" class="btn btn-info text-white">Kitaplara Göz At</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 mb-4">
+                    <div class="card h-100 shadow-sm border-secondary">
+                        <div class="card-body text-center">
+                            <h3 class="display-6 text-secondary"><i class="bi bi-gear"></i></h3>
+                            <h5 class="card-title mt-3">Hesap Ayarları</h5>
+                            <p class="card-text">Şifre değişikliği ve hesap bilgilerinizi buradan yönetebilirsiniz.</p>
+                            <a href="Account/Manage" class="btn btn-secondary">Hesabıma Git</a>
+                        </div>
+                    </div>
+                </div>
+            </Authorized>
+        </AuthorizeView>
+    </div>
+</div>

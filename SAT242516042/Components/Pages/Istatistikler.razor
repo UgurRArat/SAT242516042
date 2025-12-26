@@ -1,0 +1,120 @@
+﻿@page "/istatistikler"
+@using MyDbModels
+@using Providers
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+@rendermode InteractiveServer
+
+@inject IMyDbModel_Provider Provider
+
+<PageTitle>İstatistikler</PageTitle>
+
+<style>
+    .page-title {
+        background: linear-gradient(45deg, #f12711, #f5af19);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        letter-spacing: -1px;
+    }
+
+    .modern-card {
+        background: #fff;
+        border: none;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        overflow: hidden;
+        transition: transform 0.3s ease;
+        height: 100%;
+    }
+
+    .card-header-modern {
+        background: white;
+        padding: 20px;
+        border-bottom: 1px solid #eee;
+        font-weight: 700;
+        color: #555;
+        font-size: 1.1rem;
+    }
+</style>
+
+<div class="container py-4">
+    <h2 class="display-6 page-title mb-4">
+        <i class="bi bi-pie-chart-fill me-2"></i>Kütüphane Analizleri
+    </h2>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="modern-card">
+                <div class="card-header-modern text-primary">
+                    <i class="bi bi-bar-chart-line me-2"></i>Kategori Bazlı Kitap Dağılımı
+                </div>
+                <div class="card-body p-4">
+                    @if (Veriler == null)
+                    {
+                        <p class="text-center py-5">Veriler Yükleniyor...</p>
+                    }
+                    else
+                    {
+                        <ApexChart TItem="IstatistikModel" Title="" Options="BarOptions">
+                            <ApexPointSeries TItem="IstatistikModel"
+                                             Items="Veriler"
+                                             Name="Kitap Sayısı"
+                                             SeriesType="SeriesType.Bar"
+                                             XValue="@(e => e.KategoriAdi)"
+                                             YValue="@(e => e.KitapSayisi)" />
+                        </ApexChart>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="modern-card">
+                <div class="card-header-modern text-warning">
+                    <i class="bi bi-pie-chart me-2"></i>Oransal Dağılım
+                </div>
+                <div class="card-body p-4">
+                    @if (Veriler == null)
+                    {
+                        <p class="text-center py-5">Veriler Yükleniyor...</p>
+                    }
+                    else
+                    {
+                        <ApexChart TItem="IstatistikModel" Title="" Options="PieOptions">
+                            <ApexPointSeries TItem="IstatistikModel"
+                                             Items="Veriler"
+                                             Name="Kitap Sayısı"
+                                             SeriesType="SeriesType.Pie"
+                                             XValue="@(e => e.KategoriAdi)"
+                                             YValue="@(e => e.KitapSayisi)" />
+                        </ApexChart>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<IstatistikModel> Veriler;
+    private ApexChartOptions<IstatistikModel> BarOptions = new();
+    private ApexChartOptions<IstatistikModel> PieOptions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        BarOptions.Chart = new Chart { Toolbar = new Toolbar { Show = false } };
+        PieOptions.Chart = new Chart { Toolbar = new Toolbar { Show = false } };
+
+        // Renk Paleti (Opsiyonel - Daha şık görünmesi için)
+        PieOptions.Colors = new List<string> { "#667eea", "#764ba2", "#11998e", "#38ef7d", "#FF416C", "#FF4B2B" };
+
+        await VerileriGetir();
+    }
+
+    private async Task VerileriGetir()
+    {
+        var result = await Provider.GetItems<IstatistikModel>("sp_Rapor_KategoriKitapSayilari");
+        Veriler = result.ToList();
+    }
+}

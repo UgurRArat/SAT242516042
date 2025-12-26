@@ -1,0 +1,72 @@
+﻿@inherits LayoutComponentBase
+@layout SAT242516042.Components.Layout.MainLayout
+
+<style>
+    /* GENEL DÜZEN */
+    .manage-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        font-weight: 800;
+        margin-bottom: 10px;
+    }
+
+    .manage-subtitle {
+        color: #6c757d;
+        font-size: 1.1rem;
+        margin-bottom: 40px;
+    }
+
+    /* SOL MENÜ STİLLERİ */
+    .nav-pills .nav-link {
+        color: #555;
+        font-weight: 500;
+        padding: 15px 20px;
+        border-radius: 12px;
+        transition: all 0.3s;
+        margin-bottom: 8px;
+        border: 1px solid transparent;
+    }
+
+    .nav-pills .nav-link:hover {
+        background-color: #f8f9fa;
+        color: #764ba2;
+        transform: translateX(5px);
+    }
+
+    .nav-pills .nav-link.active {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white !important;
+        box-shadow: 0 5px 15px rgba(118, 75, 162, 0.3);
+        border: none;
+    }
+
+    /* SAĞ İÇERİK KARTI */
+    .content-card {
+        background: white;
+        border-radius: 20px;
+        padding: 40px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        border: 1px solid #f0f0f0;
+        height: 100%;
+    }
+</style>
+
+<div class="container py-5">
+    <h1 class="manage-header display-5">Hesap Yönetimi</h1>
+    <p class="manage-subtitle">Profil bilgilerinizi ve hesap ayarlarınızı buradan yönetebilirsiniz.</p>
+
+    <div class="row">
+        <div class="col-md-3 mb-4">
+            <div class="content-card p-3">
+                <ManageNav />
+            </div>
+        </div>
+
+        <div class="col-md-9">
+            <div class="content-card">
+                @Body
+            </div>
+        </div>
+    </div>
+</div>
